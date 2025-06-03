@@ -1,11 +1,13 @@
 export class CanvasApp {
-    constructor(canvasId, coordsDisplayId, pathsListId, drawModeBtnId, clearPathsBtnId) {
+    constructor(canvasId, coordsDisplayId, pathsListId, drawModeBtnId, clearPathsBtnId, gridSize = 10) {
         this.canvas = document.getElementById(canvasId);
         this.context = this.canvas.getContext("2d");
         this.coordsDisplay = document.getElementById(coordsDisplayId);
         this.pathsList = document.getElementById(pathsListId);
         this.drawModeBtn = document.getElementById(drawModeBtnId);
         this.clearPathsBtn = document.getElementById(clearPathsBtnId);
+
+        this.gridSize = gridSize; // <-- Tamaño de la cuadrícula
 
         this.isDrawing = false;
         this.drawMode = false;
@@ -31,7 +33,11 @@ export class CanvasApp {
         this.drawMode = !this.drawMode;
         this.drawModeBtn.classList.toggle('bg-green-600', this.drawMode);
         this.drawModeBtn.classList.toggle('bg-blue-500', !this.drawMode);
-        this.drawModeBtn.textContent = this.drawMode ? 'Modo trazo activo' : 'Dibujar trazo';
+        // Cambia solo el texto, no el ícono
+        const textSpan = this.drawModeBtn.querySelector('#draw-mode-text');
+        if (textSpan) {
+            textSpan.textContent = this.drawMode ? 'Modo trazo activo' : 'Dibujar trazo';
+        }
     }
 
     onMouseDown(event) {
@@ -84,17 +90,17 @@ export class CanvasApp {
 
     drawGrid() {
         const ctx = this.context;
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = '#041e47';
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.strokeStyle = 'silver';
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= this.canvas.width; x += 10) {
+        ctx.lineWidth = 0.1;
+        for (let x = 0; x <= this.canvas.width; x += this.gridSize) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, this.canvas.height);
             ctx.stroke();
         }
-        for (let y = 0; y <= this.canvas.height; y += 10) {
+        for (let y = 0; y <= this.canvas.height; y += this.gridSize) {
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(this.canvas.width, y);
@@ -102,7 +108,7 @@ export class CanvasApp {
         }
     }
 
-    drawPath(path, color = 'black') {
+    drawPath(path, color = 'white') {
         if (path.length < 2) return;
         const ctx = this.context;
         ctx.save();
@@ -120,9 +126,9 @@ export class CanvasApp {
     drawAllPaths() {
         this.paths.forEach((path, idx) => {
             if (idx === this.hoveredPathIdx) {
-                this.drawPath(path, 'blue');
+                this.drawPath(path, 'red');
             } else {
-                this.drawPath(path, 'black');
+                this.drawPath(path, 'white');
             }
         });
         if (this.isDrawing && this.currentPath.length > 1) {
@@ -147,16 +153,23 @@ export class CanvasApp {
     updatePathsList() {
         this.pathsList.innerHTML = '';
 
+        const clearBtn = this.clearPathsBtn;
         if (this.paths.length === 0) {
+            clearBtn.classList.add('hidden');
+
             // Card de "Aún no hay trazos"
             const emptyCard = document.createElement('li');
             emptyCard.className = 'bg-white text-gray-700 px-4 py-3 rounded shadow text-center';
             emptyCard.textContent = 'Aún no hay trazos';
             this.pathsList.appendChild(emptyCard);
             return;
+        } else {
+            clearBtn.classList.remove('hidden');
         }
 
-        this.paths.forEach((path, idx) => {
+        // Recorre los trazos del más nuevo al más antiguo
+        for (let idx = this.paths.length - 1; idx >= 0; idx--) {
+            const path = this.paths[idx];
             const li = document.createElement('li');
             li.className = 'flex items-center justify-between bg-white px-4 py-2 rounded shadow cursor-pointer transition-colors duration-200';
 
@@ -180,14 +193,14 @@ export class CanvasApp {
                     class="delete-path-btn text-gray-400 hover:text-red-600 transition-colors duration-200 relative group"
                     aria-label="Eliminar trazo"
                 >
-                    🗑️
+                    <i class="fas fa-trash"></i>
                     <span class="absolute left-1/2 -translate-x-1/2 -top-8 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-10">
-                        Borrar todo
+                        Eliminar trazo
                     </span>
                 </button>
             `;
             this.pathsList.appendChild(li);
-        });
+        }
 
         // Listeners para eliminar
         this.pathsList.querySelectorAll('.delete-path-btn').forEach(btn => {
@@ -198,16 +211,6 @@ export class CanvasApp {
                 this.render();
             });
         });
-
-        // Agrega el botón "Limpiar trazos" solo si hay trazos
-        const clearBtnLi = document.createElement('li');
-        clearBtnLi.className = 'flex justify-center mt-2';
-        const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'Limpiar trazos';
-        clearBtn.className = 'bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full';
-        clearBtn.addEventListener('click', () => this.clearAllPaths());
-        clearBtnLi.appendChild(clearBtn);
-        this.pathsList.appendChild(clearBtnLi);
     }
 
     clearAllPaths() {

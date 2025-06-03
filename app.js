@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'coords-display',
         'paths-list',
         'draw-mode-btn',
-        'clear-paths-btn' // <-- agrega este parámetro
+        'clear-paths-btn', // <-- agrega este parámetro
+        25 // Tamaño de la cuadrícula
     );
 });
